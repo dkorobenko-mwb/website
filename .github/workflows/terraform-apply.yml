@@ -36,7 +36,7 @@ jobs:
     - name: Build, tag, and push image to Amazon ECR
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: website
+        ECR_REPOSITORY: aws_ecr_reposisitory.app_ecr_repo
         IMAGE_TAG: latest
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
@@ -58,7 +58,6 @@ jobs:
 
     - name: Apply
       uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.0.0
-      if: fromJSON(steps.apply-run.outputs.payload).data.attributes.actions.IsConfirmable
       id: apply
       with:
         run: ${{ steps.apply-run.outputs.run_id }}
