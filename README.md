@@ -15,13 +15,13 @@ Create accounts, install neccessary tools and extensions to your [code editor](h
 
 ## Create Website
 
-Found [a basic website](https://github.com/gurkirat63/Flask-PersonalSite) on Github built with Flask and personalized it:
+Find [a basic website](https://github.com/gurkirat63/Flask-PersonalSite) on Github built with Flask and personalize it:
 
-![Personalized website](website.png)
+![Personalized website](/images/website.png)
 
 ## Containerize Application
 
-Created Dockerfile to containerize the application by following [documentation](https://www.freecodecamp.org/news/how-to-dockerize-a-flask-app/):
+Create Dockerfile to containerize the application by following [documentation](https://www.freecodecamp.org/news/how-to-dockerize-a-flask-app/):
 
 ```dockerfile
 FROM node:12.7.0-alpine
