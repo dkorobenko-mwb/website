@@ -53,7 +53,22 @@ jobs:
         with:
           run: ${{ steps.apply-run.outputs.run_id }}
           comment: "Apply Run from GitHub Actions CI ${{ github.sha }}"
-      - name: Destroy
-        if: env.TRIGGER == 'apply'
-        run:
-            terraform destroy -auto-approve
+
+  terraform_destroy:
+    name: "Terraform_destroy"
+    if: ${{ github.event.inputs.action == 'Terraform_destroy' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ github.event.inputs.resource }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+    - name: Terraform Init
+      id: init
+      run: terraform init
+    - name: Terraform Destroy
+      id: destroy
+      run: terraform destroy -auto-approve
