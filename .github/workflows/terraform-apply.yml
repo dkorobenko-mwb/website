@@ -8,11 +8,12 @@ on:
   workflow_dispatch:
     inputs:
       trigger:
-        description: "apply OR destroy"
+        description: "Terraform operation: plan, apply, destroy"
         required: true
         default: apply
         type: choice
         options:
+        - plan
         - apply
         - destroy
 
@@ -40,35 +41,18 @@ jobs:
         with:
           workspace: ${{ env.TF_WORKSPACE }}
           directory: ${{ env.CONFIG_DIRECTORY }}
-      - name: Create Apply Run
-        if: env.TRIGGER == 'apply'
-        uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
-        id: apply-run
-        with:
-          workspace: ${{ env.TF_WORKSPACE }}
-      - name: Apply
-        if: env.TRIGGER == 'apply'
-        uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.0.0
-        id: apply
-        with:
-          run: ${{ steps.apply-run.outputs.run_id }}
-          comment: "Apply Run from GitHub Actions CI ${{ github.sha }}"
+        
+      - name: Terraform init
+        run: terraform init
 
-  terraform_destroy:
-    name: "Terraform_destroy"
-    if: ${{ github.event.inputs.action == 'Terraform_destroy' }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ github.event.inputs.resource }}
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v1
-    - name: Terraform Init
-      id: init
-      run: terraform init
-    - name: Terraform Destroy
-      id: destroy
-      run: terraform destroy -auto-approve
+      - name: Terraform plan
+        run: terraform plan
+        if: "${{ github.event.inputs.terraform_operation == 'plan' }}"
+
+      - name: Terraform apply
+        run: terraform apply --auto-approve
+        if: "${{ github.event.inputs.terraform_operation == 'apply' }}"
+
+      - name: Terraform destroy
+        run: terraform destroy --auto-approve
+        if: "${{ github.event.inputs.terraform_operation == 'destroy' }}"
