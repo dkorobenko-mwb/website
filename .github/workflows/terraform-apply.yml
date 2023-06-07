@@ -4,16 +4,15 @@ on:
   #push:
   #  branches:
   #   - main
-  
+
   workflow_dispatch:
     inputs:
       trigger:
-        description: "Terraform operation: plan, apply, destroy"
+        description: "apply OR destroy"
         required: true
         default: apply
         type: choice
         options:
-        - plan
         - apply
         - destroy
 
@@ -34,25 +33,38 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-    
+
       - name: Upload Configuration
         uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
         id: apply-upload
         with:
           workspace: ${{ env.TF_WORKSPACE }}
           directory: ${{ env.CONFIG_DIRECTORY }}
-        
-      - name: Terraform init
-        run: terraform init
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Terraform plan
-        run: terraform plan
-        if: "${{ github.event.inputs.terraform_operation == 'plan' }}"
-
-      - name: Terraform apply
-        run: terraform apply --auto-approve
-        if: "${{ github.event.inputs.terraform_operation == 'apply' }}"
-
-      - name: Terraform destroy
-        run: terraform destroy --auto-approve
-        if: "${{ github.event.inputs.terraform_operation == 'destroy' }}"
+      - name: Create Apply Run
+        if: env.TRIGGER == 'apply'
+        uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
+        id: apply-run
+        with:
+          workspace: ${{ env.TF_WORKSPACE }}
+      
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      
+      - name: Apply
+        if: env.TRIGGER == 'apply'
+        uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.0.0
+        id: apply
+        with:
+          run: ${{ steps.apply-run.outputs.run_id }}
+          comment: "Apply Run from GitHub Actions CI ${{ github.sha }}"
