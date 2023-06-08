@@ -26,6 +26,11 @@ resource "aws_ecs_cluster" "my_cluster" {
 
 resource "aws_ecs_task_definition" "app_task" {
   family                   = "app-first-task"
+  requires_compatibilities = ["FARGATE"] # use Fargate as the launch type
+  network_mode             = "awsvpc"    # add VPN network mode as this is required for Fargate
+  memory                   = 512         # specify the memory that container requires
+  cpu                      = 256         # specify the CPU that container requires
+  execution_role_arn       = "${aws_iam_role.ecsTaskExecutionRole.arn}" # grant required permissions to make AWS API calls
   container_definitions    = <<DEFINITION
   [
     {
@@ -43,11 +48,6 @@ resource "aws_ecs_task_definition" "app_task" {
     }
   ]
   DEFINITION
-  requires_compatibilities = ["FARGATE"]
-  network_mode             = "awsvpc"
-  memory                   = 512
-  cpu                      = 256
-  execution_role_arn       = "${aws_iam_role.ecsTaskExecutionRole.arn}"
 }
 
 resource "aws_iam_role" "ecsTaskExecutionRole" {

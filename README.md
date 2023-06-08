@@ -10,6 +10,7 @@
     + [Launch the Container](#launch-the-container)
     + [Test the Infrastructure](#test-the-infrastructure)
   - [Automate with GitHub Actions](#automate-with-github-actions)
+  - [Useful Links](#useful-links)
 
 ## Prerequisites
 
@@ -18,6 +19,8 @@ Created accounts, installed neccessary tools and extensions to my [code editor](
 - [AWS](https://aws.amazon.com/free)/[AWS CLI](https://formulae.brew.sh/formula/awscli)
 - [Docker](https://www.docker.com)
 - [Terraform](https://www.terraform.io)
+
+The list of recommended documentation/tutorials/cheetsheets/etc is listed at the end of this file.
 
 ## Create Website
 
@@ -141,7 +144,7 @@ terraform {
 }
 ```
 
-2. Added [Terraform AWS provider](https://registry.terraform.io/providers/hashicorp/aws/latest) to `main.tf` to allow Terraform to connect to AWS:
+2. Added [Terraform AWS provider](https://registry.terraform.io/providers/hashicorp/aws/latest) to [main.tf file](https://github.com/dkorobenko-mwb/website/blob/25bc5bbb769ea44bc039ca9631cef6d6fb5da873/main.tf) to allow Terraform to connect to AWS:
 
 ```tf
 terraform {
@@ -154,7 +157,7 @@ terraform {
 }
 ```
 
-3. Created an [Elastic Container Registry (ECR)](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_repository) in `main.tf`:
+3. Created an [Elastic Container Registry (ECR)](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_repository) in [main.tf file](https://github.com/dkorobenko-mwb/website/blob/25bc5bbb769ea44bc039ca9631cef6d6fb5da873/main.tf):
 
 ```tf
 resource "aws_ecr_repository" "app_ecr_repo" {
@@ -174,31 +177,48 @@ terraform apply # provision the displayed configuration infrastructure on AWS
 
 ![ECR repository](/images/ecr_repo.png)
 
-6. Navigated to ECR repository and clicked the View push commands button, as shown below:
+6. Navigated to ECR repository and clicked the `View push commands` button, as shown below:
 
+![ECR repository v2](/images/ecr_repo_v2.png)
 
+A pop-up was launched with the push commands for this repository:
 
-7. Executed the following command to run a token that authenticates and connects Docker client to ECR repository:
+![ECR push commands](/images/push_repo.png)
+
+7. Executed the following command in the CLI to run a token that authenticates and connects Docker client to ECR repository:
 
 ```sh
 aws ecr get-login-password --region REGION | docker login \     #REGION = your AWS region
 --username AWS --password-stdin ID.dkr.ecr.REGION.amazonaws.com #ID     = your AWS account id
 ```
 
-8. Built the container and pushed the image to ECR repository:
+8. Built the Docker image, tagged it and pushed to ECR repository:
 
 ```sh
-docker build -t website:latest .
-docker push website:latest
+docker build -t app-repo .
+docker tag app-repo:latest ID.dkr.ecr.REGION.amazonaws.com/app-repo:latest #ID     = your AWS account id
+docker push ID.dkr.ecr.REGION.amazonaws.com/app-repo:latest                #REGION = your AWS region
 ```
 
 9. Verified via AWS Console that the image was successfully pushed to ECR repository:
 
-![ECR repository v2](/images/ecr_repo_v2.png)
+![ECR image](/images/ecr_image_v2.png)
 
 ### Create an ECS Cluster
 
+I have created a repository and deployed the image, but to launch it I will need a target. A cluster acts as the container target. It takes a task into the cluster configuration and runs that task within the cluster. The ECS agent communicates with the ECS cluster and receives requests to launch the container. 
+
+Added the following configurations to [main.tf file](https://github.com/dkorobenko-mwb/website/blob/25bc5bbb769ea44bc039ca9631cef6d6fb5da873/main.tf) to create a cluster where I will run a task:
+
+```tf
+resource "aws_ecs_cluster" "my_cluster" {
+  name = "app-cluster"
+}
+```
+
 ### Configure AWS ECS Task Definitions
+
+
 
 ### Launch the Container
 
@@ -227,10 +247,11 @@ docker push website:latest
   + [Documentation]()
 
 - Terraform
-  + [Documentation]()
-  + [Documentation]()
-  + [Documentation]()
-  + [Documentation]()
+  + [Documentation](https://developer.hashicorp.com/terraform/docs)
+  + [Registry](https://registry.terraform.io/)
+  + [Best Practices](https://www.terraform-best-practices.com)
+  + [Youtube Course](https://youtu.be/SLB_c_ayRMo)
+  + [Hands-on Book](https://www.amazon.co.uk/Terraform-Running-Writing-Infrastructure-Code-dp-1098116747/dp/1098116747/ref=dp_ob_title_bk)
 
 - GitHub Actions
   + [Documentation]()
