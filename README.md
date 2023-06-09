@@ -444,7 +444,7 @@ Note! If you ran terraform destroy earlier, you need to push the Docker image ma
 
 ![Load Balancer](/images/load_balancer.png)
 
-4. Last but not least, I run `terraform destroy` to avoid any additional AWS expences.
+4. Last but not least, I run `terraform destroy` to avoid any additional AWS expenses.
 
 ## Automate with GitHub Actions
 
