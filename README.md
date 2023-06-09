@@ -208,6 +208,8 @@ docker push ID.dkr.ecr.REGION.amazonaws.com/app-repo:latest                #REGI
 
 ![ECR image](/images/ecr_image.png)
 
+10. To avoid additional AWS costs `terraform destroy` command should be applied. But once Terraform section will come to an end, to verify that the setup is actually working the docker image has to be created again.
+
 ### Create an ECS Cluster
 
 I have created a repository and deployed the image, but to launch it I will need a target. A cluster acts as the container target. It takes a task into the cluster configuration and runs that task within the cluster. The ECS agent communicates with the ECS cluster and receives requests to launch the container. 
@@ -389,7 +391,7 @@ resource "aws_ecs_service" "app_service" {
 
 7. To access ECS service over HTTP while ensuring the VPC is more secure, I created a security group that will only allow the traffic from the created load balancer:
 
-```
+```tf
 resource "aws_security_group" "service_security_group" {
   ingress {
     from_port = 0
@@ -417,6 +419,32 @@ output "app_url" {
 ```
 
 ### Test the Infrastructure
+
+Now it is time to test the infrastrucure that was created with Terraform.
+
+1. Applied the created Terraform configuration ([cheatsheet](https://acloudguru.com/blog/engineering/the-ultimate-terraform-cheatsheet)):
+
+```sh
+terraform init  # initialize directory, pull down providers
+terraform plan  # preview changes required by the current configuration
+terraform apply # provision the displayed configuration infrastructure on AWS
+```
+
+The output should end with an application's URL:
+
+![Terraform output](/images/app_url.png)
+
+2. After copying URL to the browser, I was able to access my AWS ECS provisioned application:
+
+![Terraform website](/images/terraform_website.png)
+
+Note! If you ran terraform destroy earlier, you need to push the Docker image manually to the ECR repository again and refresh the web page.
+
+3. Finally, I verified via AWS Console that all the services like Load Balancer, VPC/Subnets, ECS Cluster, etc were created according to the Terraform configuration. For instance, Load Balancer:
+
+![Load Balancer](/images/load_balancer.png)
+
+4. Last but not least, I run `terraform destroy` to avoid any additional AWS expences.
 
 ## Automate with GitHub Actions
 
