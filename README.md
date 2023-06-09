@@ -206,7 +206,7 @@ docker push ID.dkr.ecr.REGION.amazonaws.com/app-repo:latest                #REGI
 
 9. Verified via AWS Console that the image was successfully pushed to ECR repository:
 
-![ECR image](/images/ecr_image_v2.png)
+![ECR image](/images/ecr_image.png)
 
 ### Create an ECS Cluster
 
