@@ -1,12 +1,12 @@
 # SRE Internship - First App
   - [Prerequisites](#prerequisites)
+  - [CI/CD Workflow](#-workflow)
   - [Create Website](#create-website)
   - [Containerize Application](#containerize-application)
   - [Deploy Using Terraform](#deploy-using-terraform)
     + [Initial Setup](#initial-setup)
-    + [Create an ECR on AWS ECS](#create-an-ecr-on-aws-ecs)
-    + [Create an ECS Cluster](#create-an-ecs-cluster)
-    + [Configure AWS ECS Task Definitions](#configure-aws-ecs-task-definitions)
+    + [Create an ECR on AWS ECS and Push the Docker Image](#create-an-ecr-on-aws-ecs-and-push-the-docker-image)
+    + [Create an ECS Cluster and Configure AWS ECS Task Definitions](#create-an-ecs-cluster-and-configure-aws-ecs-task-definitions)
     + [Launch the Container](#launch-the-container)
     + [Test the Infrastructure](#test-the-infrastructure)
   - [Automate with GitHub Actions](#automate-with-github-actions)
@@ -21,6 +21,10 @@ Create accounts, install neccessary tools and extensions to the [code editor](ht
 - [Terraform](https://www.terraform.io)
 
 The list of recommended documentation/tutorials/cheetsheets/courses/etc is mentioned at the end of this file.
+
+## CI/CD Workflow
+
+
 
 ## Create Website
 
@@ -129,7 +133,7 @@ terraform login
 
 ![Terraform variables](/images/terraform_envs.png)
 
-### Create an ECR on AWS ECS
+### Create an ECR on AWS ECS and Push the Docker Image
 
 ECR is an AWS service for sharing and deploying container applications. This service offers a fully managed container registry that makes the process of storing, managing, sharing, and deploying your containers easier and faster. First, I will need to set up ECR to deploy my application to ECS.
 
@@ -210,7 +214,7 @@ docker push ID.dkr.ecr.REGION.amazonaws.com/app-repo:latest                #REGI
 
 10. To avoid additional AWS costs `terraform destroy` command should be applied. But once Terraform section will come to an end, to verify that the setup is actually working the docker image has to be created again.
 
-### Create an ECS Cluster
+### Create an ECS Cluster and Configure AWS ECS Task Definitions
 
 I have created a repository and deployed the image, but to launch it I will need a target. A cluster acts as the container target. It takes a task into the cluster configuration and runs that task within the cluster. The ECS agent communicates with the ECS cluster and receives requests to launch the container. 
 
@@ -221,8 +225,6 @@ resource "aws_ecs_cluster" "my_cluster" {
   name = "app-cluster"
 }
 ```
-
-### Configure AWS ECS Task Definitions
 
 The image is now hosted in the ECR, but to run the image, I need to launch it onto an ECS container. To deploy the image to ECS, I first need to create a task. A task tells ECS how I want to spin up Docker container. It describes the container’s critical specifications which include:
 
@@ -444,7 +446,7 @@ Note! If you ran terraform destroy earlier, you need to push the Docker image ma
 
 ![Load Balancer](/images/load_balancer.png)
 
-4. Last but not least, I run `terraform destroy` to avoid any additional AWS expenses.
+4. Last but not least, I ran `terraform destroy` to avoid any additional AWS expenses.
 
 ## Automate with GitHub Actions
 
@@ -459,14 +461,14 @@ All learning materials recommended here are free, except for books (more in-dept
   + [Documentation]()
 
 - AWS
-  + [Documentation]()
-  + [Documentation]()
+  + [Documentation](https://docs.aws.amazon.com/)
+  + [Skill Builder](https://skillbuilder.aws/)
   + [Documentation]()
   + [Documentation]()
 
 - Docker
   + [Documentation](https://docs.docker.com)
-  + [Cheat sheet](https://docs.docker.com/get-started/docker_cheatsheet.pdf)
+  + [Cheat Sheet](https://docs.docker.com/get-started/docker_cheatsheet.pdf)
   + [Course](https://learn.cantrill.io/p/docker-fundamentals)
   + [Other]()
 
