@@ -1,6 +1,6 @@
 # SRE Internship - First App
   - [Prerequisites](#prerequisites)
-  - [CI/CD Workflow](#-workflow)
+  - [Project Description](#project-description)
   - [Create Website](#create-website)
   - [Containerize Application](#containerize-application)
   - [Deploy Using Terraform](#deploy-using-terraform)
@@ -15,16 +15,19 @@
 ## Prerequisites
 
 Create accounts, install neccessary tools and extensions to the [code editor](https://www.hostinger.com/tutorials/best-code-editors):
-- [Github](https://github.com/pricing)/[Git](https://formulae.brew.sh/formula/git)
+- [Github](https://github.com/pricing)/[Git](https://git-scm.com/downloads)
 - [AWS](https://aws.amazon.com/free)/[AWS CLI](https://formulae.brew.sh/formula/awscli)
 - [Docker](https://www.docker.com)
-- [Terraform](https://www.terraform.io)
+- [Terraform CLI](https://www.terraform.io)
 
 The list of recommended documentation/tutorials/cheetsheets/courses/etc is mentioned at the end of this file.
 
-## CI/CD Workflow
+## Project Description
 
-
+- Find a basic Flask site and personalize it
+- Dockerize the Flask application
+- Deploy AWS infrastructure using Terraform and manually push the Docker image to AWS ECR repository
+- Automate the workflow with GitHub Actions
 
 ## Create Website
 
@@ -440,7 +443,7 @@ The output should end with an application's URL:
 
 ![Terraform website](/images/terraform_website.png)
 
-Note! If you ran terraform destroy earlier, you need to push the Docker image manually to the ECR repository again and refresh the web page.
+>**Note!** If you ran terraform destroy earlier, you need to push the Docker image manually to the ECR repository again and refresh the web page.
 
 3. Finally, I verified via AWS Console that all the services like Load Balancer, VPC/Subnets, ECS Cluster, etc were created according to the Terraform configuration. For instance, Load Balancer:
 
@@ -484,3 +487,5 @@ All learning materials recommended here are free, except for books (more in-dept
   + [Documentation]()
   + [Documentation]()
   + [Documentation]()
+
+  >**Note!** I've built this project from many resources which were mentioned throughout the file. *Useful Links* section is purely a source of information for you about where to get the basic knowledge required to complete this project.
