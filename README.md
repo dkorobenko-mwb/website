@@ -489,4 +489,4 @@ All learning materials recommended here are free, except for books (more in-dept
   + [Documentation]()
 
 
-  >**Note!** I've built this project from many resources which were mentioned throughout the file. *Useful Links* section is purely a source of information for you about where to get the basic knowledge required to complete this project.
+  >**Note**: I've built this project from many resources which were mentioned throughout the file. *Useful Links* section is purely a source of information for you about where to get the basic knowledge required to complete this project.
