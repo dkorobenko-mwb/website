@@ -14,21 +14,23 @@
 
 ## Prerequisites
 
-Created accounts, installed neccessary tools and extensions to my [code editor](https://www.hostinger.com/tutorials/best-code-editors):
+Create accounts, install neccessary tools and extensions to the [code editor](https://www.hostinger.com/tutorials/best-code-editors):
 - [Github](https://github.com/pricing)/[Git](https://formulae.brew.sh/formula/git)
 - [AWS](https://aws.amazon.com/free)/[AWS CLI](https://formulae.brew.sh/formula/awscli)
 - [Docker](https://www.docker.com)
 - [Terraform](https://www.terraform.io)
 
-The list of recommended documentation/tutorials/cheetsheets/etc is listed at the end of this file.
+The list of recommended documentation/tutorials/cheetsheets/courses/etc is mentioned at the end of this file.
 
 ## Create Website
 
-Found [a basic website](https://github.com/gurkirat63/Flask-PersonalSite) on Github built with Flask and personalized it by modifying [index.html file](https://github.com/dkorobenko-mwb/website/blob/6f085106ec51ef8131d12b30999b10373081f627/templates/index.html):
+At first, I found [a basic website](https://github.com/gurkirat63/Flask-PersonalSite) on Github built with Flask and personalized it by modifying [index.html file](https://github.com/dkorobenko-mwb/website/blob/6f085106ec51ef8131d12b30999b10373081f627/templates/index.html):
 
 ![Personalized website](/images/website.png)
 
 ## Containerize Application
+
+Now I will try to containerize my application with Docker.
 
 1. Created [Dockerfile](https://github.com/dkorobenko-mwb/website/blob/6f085106ec51ef8131d12b30999b10373081f627/Dockerfile) to containerize the application by following [documentation](https://www.freecodecamp.org/news/how-to-dockerize-a-flask-app/):
 
@@ -91,7 +93,7 @@ docker rm container_or_image_name_or_id # remove image/container
 
 ## Deploy Using Terraform
 
-Deployed Docker container to AWS ECS using Terraform with the help of [this tutorial](https://earthly.dev/blog/deploy-dockcontainers-to-awsecs-using-terraform/).
+Next step would be to deploy Docker container to AWS ECS using Terraform (with the help of [this tutorial](https://earthly.dev/blog/deploy-dockcontainers-to-awsecs-using-terraform/)).
 
 ### Initial Setup
 
@@ -128,6 +130,8 @@ terraform login
 ![Terraform variables](/images/terraform_envs.png)
 
 ### Create an ECR on AWS ECS
+
+ECR is an AWS service for sharing and deploying container applications. This service offers a fully managed container registry that makes the process of storing, managing, sharing, and deploying your containers easier and faster. First, I will need to set up ECR to deploy my application to ECS.
 
 1. Created [main.tf file](https://github.com/dkorobenko-mwb/website/blob/c682dd2f4372fbca8d1f07d3d15a31f9bc9db992/main.tf) and added [remote backend configuration](https://developer.hashicorp.com/terraform/language/settings/backends/remote) to store state snapshots and execute operations in Terraform Cloud:
 
@@ -208,7 +212,7 @@ docker push ID.dkr.ecr.REGION.amazonaws.com/app-repo:latest                #REGI
 
 I have created a repository and deployed the image, but to launch it I will need a target. A cluster acts as the container target. It takes a task into the cluster configuration and runs that task within the cluster. The ECS agent communicates with the ECS cluster and receives requests to launch the container. 
 
-Added the following configurations to [main.tf file](https://github.com/dkorobenko-mwb/website/blob/25bc5bbb769ea44bc039ca9631cef6d6fb5da873/main.tf) to create a cluster where I will run a task:
+I added the following configurations to [main.tf file](https://github.com/dkorobenko-mwb/website/blob/25bc5bbb769ea44bc039ca9631cef6d6fb5da873/main.tf) to create a cluster where I will run a task:
 
 ```tf
 resource "aws_ecs_cluster" "my_cluster" {
@@ -218,15 +222,207 @@ resource "aws_ecs_cluster" "my_cluster" {
 
 ### Configure AWS ECS Task Definitions
 
+The image is now hosted in the ECR, but to run the image, I need to launch it onto an ECS container. To deploy the image to ECS, I first need to create a task. A task tells ECS how I want to spin up Docker container. It describes the container’s critical specifications which include:
 
++ Port mappings
++ Application image
++ CPU and RAM resources
++ Container launch types such as EC2 or Fargate
+
+Fargate (that I am going to use) is an AWS orchestration tool which runs container as serverless, so I do not have to provision container using a virtual machine on AWS. Using Task definition JSON format, I provided the container specifications in [main.tf file](https://github.com/dkorobenko-mwb/website/blob/25bc5bbb769ea44bc039ca9631cef6d6fb5da873/main.tf) by following [Terraform](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_task_definition) and [AWS]() documentation:
+
+```tf
+resource "aws_ecs_task_definition" "app_task" {
+  family                   = "app-first-task"
+  requires_compatibilities = ["FARGATE"] # use Fargate as the launch type
+  network_mode             = "awsvpc"    # add VPN network mode as this is required for Fargate
+  memory                   = 512         # specify the memory that container requires
+  cpu                      = 256         # specify the CPU that container requires
+  execution_role_arn       = "${aws_iam_role.ecsTaskExecutionRole.arn}" # grant required permissions to make AWS API calls
+  container_definitions    = <<DEFINITION
+  [
+    {
+      "name": "app-first-task",
+      "image": "${aws_ecr_repository.app_ecr_repo.repository_url}",
+      "essential": true,
+      "memory": 512,
+      "cpu": 256,
+      "portMappings": [
+        {
+          "containerPort": 5000,
+          "hostPort": 5000
+        }
+      ]
+    }
+  ]
+  DEFINITION
+}
+```
+
+Creating a task definition requires ecsTaskExecutionRole to be added to IAM, so I created a resource to execute this role by following [Terraform](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) and [AWS](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html) documentation:
+
+```tf
+resource "aws_iam_role" "ecsTaskExecutionRole" {
+  name               = "ecsTaskExecutionRole"
+  assume_role_policy = "${data.aws_iam_policy_document.assume_role_policy.json}"
+}
+
+data "aws_iam_policy_document" "assume_role_policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
+  role       = "${aws_iam_role.ecsTaskExecutionRole.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+```
 
 ### Launch the Container
+
+At this point, I need to create VPC and subnets to launch the cluster into. The load balancer must use a VPC with two public subnets in different Availability Zones. VPC and subnets allow to connect to the internet, communicate with ECS, and expose the application to available zones.
+
+1. Created a default VPC by following [the documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/default_vpc):
+
+```tf
+resource "aws_default_vpc" "default_vpc" {
+}
+```
+
+2. Created default subnets by following [the documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/default_subnet):
+
+```tf
+resource "aws_default_subnet" "default_subnet_a" {
+  availability_zone = "eu-central-1a"
+}
+
+resource "aws_default_subnet" "default_subnet_b" {
+  availability_zone = "eu-central-1b"
+}
+```
+
+3. Implemented an application load balancer by following [the documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb):
+
+```tf
+resource "aws_alb" "application_load_balancer" {
+  name               = "load-balancer-dev"
+  load_balancer_type = "application"
+  subnets = [
+    "${aws_default_subnet.default_subnet_a.id}",
+    "${aws_default_subnet.default_subnet_b.id}"
+  ]
+  security_groups = ["${aws_security_group.load_balancer_security_group.id}"]
+}
+```
+
+4. Created a security group for the load balancer by following [the documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group):
+
+```tf
+resource "aws_security_group" "load_balancer_security_group" {
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # allow traffic in from all sources
+  }
+
+  egress {  # allow all egress rule
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+```
+
+5. Target group directs traffic to Amazon ECS application's task set. Listener is used by load balancer to direct traffic to target group. Both are required to configure the load balancer with the VPC networking I created earlier, and were defined by following [the documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_listener):
+
+```tf
+resource "aws_lb_target_group" "target_group" {
+  name        = "target-group"
+  port        = 80
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = "${aws_default_vpc.default_vpc.id}" # default VPC
+}
+
+resource "aws_lb_listener" "listener" {
+  load_balancer_arn = "${aws_alb.application_load_balancer.arn}" # load balancer
+  port              = "80"
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.target_group.arn}" # target group
+  }
+}
+```
+
+6. The last step is to create an ECS Service to maintain task definition in ECS cluster. The service should run the cluster, task, and Fargate behind the created load balancer to distribute traffic across the containers that are associated with the service. ECS Service was configured by following [the documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service):
+
+```tf
+resource "aws_ecs_service" "app_service" {
+  name            = "app-first-service" # name the service
+  cluster         = "${aws_ecs_cluster.my_cluster.id}" # reference the created cluster
+  task_definition = "${aws_ecs_task_definition.app_task.arn}" # reference the task that the service will spin up
+  launch_type     = "FARGATE"
+  desired_count   = 3 # set up the number of containers to 3
+
+  load_balancer {
+    target_group_arn = "${aws_lb_target_group.target_group.arn}" # reference the target group
+    container_name   = "${aws_ecs_task_definition.app_task.family}"
+    container_port   = 5000 # specify the container port
+  }
+
+  network_configuration {
+    subnets          = ["${aws_default_subnet.default_subnet_a.id}", "${aws_default_subnet.default_subnet_b.id}"]
+    assign_public_ip = true # provide the containers with public IPs
+    security_groups  = ["${aws_security_group.service_security_group.id}"] # det up the security group
+  }
+}
+```
+
+7. To access ECS service over HTTP while ensuring the VPC is more secure, I created a security group that will only allow the traffic from the created load balancer:
+
+```
+resource "aws_security_group" "service_security_group" {
+  ingress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    # allow traffic in from the load balancer security group
+    security_groups = ["${aws_security_group.load_balancer_security_group.id}"]
+  }
+
+  egress { # allow all egress rule
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+```
+
+8. Additionally, added an output config that will extract the load balancer URL value from the state file and log it onto the terminal:
+
+```tf
+output "app_url" {
+  value = aws_alb.application_load_balancer.dns_name # log the load balancer app URL
+}
+```
 
 ### Test the Infrastructure
 
 ## Automate with GitHub Actions
 
 ## Useful Links
+
+All learning materials recommended here are free, except for books (more in-depth knowledge).
 
 - GitHub
   + [Documentation]()
@@ -241,10 +437,10 @@ resource "aws_ecs_cluster" "my_cluster" {
   + [Documentation]()
 
 - Docker
-  + [Documentation]()
-  + [Documentation]()
-  + [Documentation]()
-  + [Documentation]()
+  + [Documentation](https://docs.docker.com)
+  + [Cheat sheet](https://docs.docker.com/get-started/docker_cheatsheet.pdf)
+  + [Course](https://learn.cantrill.io/p/docker-fundamentals)
+  + [Other]()
 
 - Terraform
   + [Documentation](https://developer.hashicorp.com/terraform/docs)
