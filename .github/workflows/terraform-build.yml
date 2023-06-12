@@ -46,7 +46,8 @@ jobs:
 
       - name: Terraform destroy # destroy AWS ECR repository forcefully, then destroy all other Terraform resources
         run: |
-          aws ecr delete-repository --repository-name ${{ env.ECR_REPOSITORY }} --force
+          aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} >/dev/null 2>&1 &&
+          aws ecr delete-repository --repository-name ${{ env.ECR_REPOSITORY }} --force || true
           terraform destroy --auto-approve
         if: inputs.trigger == 'destroy'
 
