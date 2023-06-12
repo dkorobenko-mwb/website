@@ -21,7 +21,7 @@ env:
   TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
 
 jobs:
-  terraform:
+  build-aws-infra:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -37,12 +37,11 @@ jobs:
         run: terraform init
 
       - name: Terraform apply
-        id: tf-apply
         run: terraform apply --auto-approve
         if: inputs.trigger == 'apply'
 
-      - name: Set output
-        run: echo $(terraform output app_url) > output.txt
+      - name: Application URL
+        run: echo APP_URL=$(terraform output app_url)
         if: inputs.trigger == 'apply'
 
       - name: Terraform destroy
@@ -51,9 +50,9 @@ jobs:
           terraform destroy --auto-approve
         if: inputs.trigger == 'destroy'
 
-  deploy-app:
+  build-and-push-image:
     runs-on: ubuntu-latest
-    needs: terraform
+    needs: build-aws-infra
     if: inputs.trigger == 'apply'
     steps:
       - name: Checkout Code
@@ -78,6 +77,3 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-      - name: Application URL
-        run: cat output.txt
