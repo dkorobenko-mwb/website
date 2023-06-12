@@ -42,7 +42,7 @@ jobs:
         if: inputs.trigger == 'apply'
 
       - name: Set output
-        run: echo "APP_URL=$(terraform output -raw app_url)" >> $GITHUB_ENV
+        run: echo "::set-env name=APP_URL::$(terraform output -raw app_url)"
         if: inputs.trigger == 'apply'
 
       - name: Terraform destroy
