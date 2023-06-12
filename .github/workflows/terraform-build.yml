@@ -47,7 +47,7 @@ jobs:
 
       - name: Terraform destroy
         run: |
-          aws ecr batch-delete-image --repository-name ${{ env.ECR_REPOSITORY }} --image-ids $(aws ecr list-images --repository-name env.ECR_REPOSITORY --query 'imageIds[*]' --output json)
+          aws ecr batch-delete-image --repository-name ${{ env.ECR_REPOSITORY }} --image-ids $(aws ecr list-images --repository-name ${{ env.ECR_REPOSITORY }} --query 'imageIds[*]' --output json)
           terraform destroy --auto-approve
         if: "${{ github.event.inputs.terraform_operation == 'destroy' }}"
         
