@@ -42,7 +42,7 @@ jobs:
         if: inputs.trigger == 'apply'
 
       - name: Set output
-        run: echo "$(terraform output -raw app_url)" > output.txt
+        run: echo $(terraform output app_url) > output.txt
         if: inputs.trigger == 'apply'
 
       - name: Terraform destroy
