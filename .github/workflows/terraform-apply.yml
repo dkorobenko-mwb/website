@@ -17,7 +17,7 @@ env:
   CONFIG_DIRECTORY: "./"
 
 jobs:
-  create-ecr:
+  deploy-app:
     runs-on: ubuntu-latest
 
     steps:
@@ -62,3 +62,4 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "${{ steps.apply.outputs.run_id }}"
