@@ -19,6 +19,7 @@ env:
   AWS_REGION: eu-central-1
   ECR_REPOSITORY: app-repo
   TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
+  APP_URL:
 
 jobs:
   terraform:
