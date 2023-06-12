@@ -42,7 +42,7 @@ jobs:
         if: inputs.trigger == 'apply'
 
       - name: Set output
-        run: echo APP_URL=$(terraform output app_url)
+        run: echo "APP_URL=$(terraform output -raw app_url)" >> $GITHUB_ENV
         if: inputs.trigger == 'apply'
 
       - name: Terraform destroy
@@ -80,4 +80,4 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Application URL
-        run: echo ${{ needs.terraform.outputs.APP_URL }}
+        run: echo $APP_URL
