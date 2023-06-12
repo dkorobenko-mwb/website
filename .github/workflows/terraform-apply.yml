@@ -1,9 +1,17 @@
 name: 'Terraform Apply'
 
 on:
-  push:
-    branches:
-    - main
+  workflow_dispatch:
+    inputs:
+      terraform_operation:
+        description: "Terraform operation: plan, apply, destroy"
+        required: true
+        default: "plan"
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
 
 env:
   AWS_ACCOUNT_NUMBER: ${{ secrets.AWS_ACCOUNT_NUMBER }}
@@ -11,19 +19,39 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: eu-central-1
   ECR_REPOSITORY: app-repo
-  TF_CLOUD_ORGANIZATION: "dkorobenko"
   TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
-  TF_WORKSPACE: "learning-terraform"
-  CONFIG_DIRECTORY: "./"
 
 jobs:
-  deploy-app:
+  terraform:
+    name: "terraform"
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-      
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          cli_config_credentials_token: ${{ env.TF_API_TOKEN }}
+
+      - name: Terraform init
+        run: terraform init
+
+      - name: Terraform plan
+        run: terraform plan
+        if: "${{ github.event.inputs.terraform_operation == 'plan' }}"
+
+      - name: Terraform apply
+        run: terraform apply --auto-approve
+        if: "${{ github.event.inputs.terraform_operation == 'apply' }}"
+
+      - name: Terraform destroy
+        run: terraform destroy --auto-approve
+        if: "${{ github.event.inputs.terraform_operation == 'destroy' }}"
+        
+  deploy-app:
+    runs-on: ubuntu-latest
+    steps:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
@@ -34,25 +62,6 @@ jobs:
           registry: ${{ env.AWS_ACCOUNT_NUMBER }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
           username: ${{ env.AWS_ACCESS_KEY_ID }}
           password: ${{ env.AWS_SECRET_ACCESS_KEY }}
-      
-      - name: Upload Configuration
-        uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
-        id: apply-upload
-        with:
-          workspace: ${{ env.TF_WORKSPACE }}
-          directory: ${{ env.CONFIG_DIRECTORY }}
-
-      - name: Create Apply Run
-        uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
-        id: apply-run
-        with:
-          workspace: ${{ env.TF_WORKSPACE }}
-            
-      - name: Apply
-        uses: hashicorp/tfc-workflows-github/actions/apply-run@v1.0.0
-        id: apply
-        with:
-          run: ${{ steps.apply-run.outputs.run_id }}
 
       - name: Build, tag, and push image to ECR
         env:
