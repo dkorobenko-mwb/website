@@ -37,7 +37,9 @@ jobs:
         run: terraform init
 
       - name: Terraform apply
-        run: terraform apply --auto-approve
+        run: |
+          terraform apply --auto-approve
+          echo "APP_URL=$(terraform output app_url)" >> $GITHUB_ENV
         if: inputs.trigger == 'apply'
 
       - name: Terraform destroy
@@ -75,4 +77,4 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Application URL
-        run: echo Application URL is $(terraform output app_url)
+        run: echo $APP_URL
