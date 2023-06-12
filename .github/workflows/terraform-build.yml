@@ -19,7 +19,6 @@ env:
   AWS_REGION: eu-central-1
   ECR_REPOSITORY: app-repo
   TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
-  APP_URL:
 
 jobs:
   terraform:
@@ -40,7 +39,8 @@ jobs:
       - name: Terraform apply
         run: |
           terraform apply --auto-approve
-          echo "APP_URL=$(terraform output app_url)" >> $GITHUB_ENV
+          output_value=$(terraform output -raw app_url)
+          echo "APP_URL=$output_value" >> $GITHUB_ENV
         if: inputs.trigger == 'apply'
 
       - name: Terraform destroy
