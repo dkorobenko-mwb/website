@@ -23,6 +23,11 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_wrapper: false
 
       - name: Upload Configuration
         uses: hashicorp/tfc-workflows-github/actions/upload-configuration@v1.0.0
@@ -53,11 +58,7 @@ jobs:
         id: apply
         with:
           run: ${{ steps.apply-run.outputs.run_id }}
-        
-      - name: Get outputs
-        uses: dflook/terraform-output@v1
-        id: tf-outputs
-  
+
       - name: Build, tag, and push image to ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -67,5 +68,5 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: Print the URL
-        run: echo "App URL is ${{ steps.tf-outputs.outputs.app_url }}"
+      - name: Output application URL
+        run: echo "APP_URL=$(terraform output app_url)" >> $GITHUB_OUTPUT
