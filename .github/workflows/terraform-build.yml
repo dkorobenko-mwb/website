@@ -13,13 +13,8 @@ on:
           - destroy
 
 env:
-  AWS_ACCOUNT_NUMBER: ${{ secrets.AWS_ACCOUNT_NUMBER }}
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: eu-central-1
   ECR_REPOSITORY: app-repo
-  TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
-  TRIGGER: '${{ inputs.trigger }}'
 
 jobs:
   terraform:
@@ -31,7 +26,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
         with:
-          cli_config_credentials_token: ${{ env.TF_API_TOKEN }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
           terraform_wrapper: false
 
       - name: Terraform init
@@ -39,30 +34,32 @@ jobs:
 
       - name: Terraform apply
         run: terraform apply --auto-approve
-        if: "${{ env.TRIGGER == 'apply' }}"
+        if: inputs.trigger == 'apply'
 
       - name: Terraform destroy
         run: |
           aws ecr delete-repository --repository-name ${{ env.ECR_REPOSITORY }} --force
           terraform destroy --auto-approve
-        if: "${{ env.TRIGGER == 'destroy' }}"
+        if: inputs.trigger == 'destroy'
 
   deploy-app:
     runs-on: ubuntu-latest
     needs: terraform
+    if: inputs.trigger == 'apply'
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-        if: "${{ env.TRIGGER == 'apply' }}"
       
       - name: Docker login to ECR
         uses: docker/login-action@v2
         with:
-          registry: ${{ env.AWS_ACCOUNT_NUMBER }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
-          username: ${{ env.AWS_ACCESS_KEY_ID }}
-          password: ${{ env.AWS_SECRET_ACCESS_KEY }}
-        if: "${{ env.TRIGGER == 'apply' }}"
+          registry: ${{ secrets.AWS_ACCOUNT_NUMBER }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Build, tag, and push image to ECR
         env:
@@ -72,8 +69,6 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        if: "${{ env.TRIGGER == 'apply' }}"
 
       - name: Application URL
         run: echo Application URL is $(terraform output app_url)
-        if: "${{ env.TRIGGER == 'apply' }}"
