@@ -33,6 +33,7 @@ jobs:
         uses: hashicorp/setup-terraform@v1
         with:
           cli_config_credentials_token: ${{ env.TF_API_TOKEN }}
+          terraform_wrapper: false
 
       - name: Terraform init
         run: terraform init
@@ -49,9 +50,7 @@ jobs:
         run: terraform destroy --auto-approve
         if: "${{ github.event.inputs.terraform_operation == 'destroy' }}"
         
-  deploy-app:
-    runs-on: ubuntu-latest
-    steps:
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
@@ -71,3 +70,6 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Application URL
+        run: echo APP_URL=$(terraform output app_url)
