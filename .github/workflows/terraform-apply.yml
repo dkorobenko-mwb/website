@@ -53,7 +53,6 @@ jobs:
         id: apply
         with:
           run: ${{ steps.apply-run.outputs.run_id }}
-          comment: "Apply Run from GitHub Actions CI ${{ github.sha }}"
 
       - name: Build, tag, and push image to ECR
         env:
@@ -63,3 +62,6 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Set Output
+        run: echo "APP_URL=$(terraform output app_url)" >> $GITHUB_OUTPUT
