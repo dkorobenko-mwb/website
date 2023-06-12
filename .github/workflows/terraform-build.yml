@@ -1,7 +1,7 @@
 name: 'Terraform Build'
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: #  trigger workflow manually from GitHub repository interface, either apply or destroy
     inputs:
       trigger:
         description: "Terraform operation: apply, destroy"
@@ -12,7 +12,7 @@ on:
           - apply
           - destroy
 
-env:
+env: # define environmental variables
   AWS_ACCOUNT_NUMBER: ${{ secrets.AWS_ACCOUNT_NUMBER }}
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -24,33 +24,33 @@ jobs:
   build-aws-infra:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Code # check out repository under $GITHUB_WORKSPACE, so the workflow can access it
         uses: actions/checkout@v3
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+      - name: Setup Terraform # set up Terraform CLI in the workflow
+        uses: hashicorp/setup-terraform@v2
         with:
-          cli_config_credentials_token: ${{ env.TF_API_TOKEN }}
-          terraform_wrapper: false
+          cli_config_credentials_token: ${{ env.TF_API_TOKEN }} # configure credentials for Terraform Cloud 
+          terraform_wrapper: false # display output values as plain text without any additional formatting
 
-      - name: Terraform init
+      - name: Terraform init # initialize a Terraform working directory
         run: terraform init
 
-      - name: Terraform apply
+      - name: Terraform apply # apply the changes defined in Terraform configuration
         run: terraform apply --auto-approve
         if: inputs.trigger == 'apply'
 
-      - name: Application URL
+      - name: Application URL # output application URL
         run: echo APP_URL=$(terraform output app_url)
         if: inputs.trigger == 'apply'
 
-      - name: Terraform destroy
+      - name: Terraform destroy # destroy AWS ECR repository forcefully, then destroy all other Terraform resources
         run: |
           aws ecr delete-repository --repository-name ${{ env.ECR_REPOSITORY }} --force
           terraform destroy --auto-approve
         if: inputs.trigger == 'destroy'
 
-  build-and-push-image:
+  build-and-push-image: # use build-aws-infra job, do not run in case 'terraform destroy' is applied
     runs-on: ubuntu-latest
     needs: build-aws-infra
     if: inputs.trigger == 'apply'
@@ -58,18 +58,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Login to Amazon ECR
+      - name: Login to Amazon ECR # authenticate with AWS and retrieve temporary ECR registry credentials
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
       
-      - name: Docker login to ECR
+      - name: Docker login to ECR # use temporary ECR credentials to authenticate Docker CLI with ECR registry
         uses: docker/login-action@v2
         with:
           registry: ${{ env.AWS_ACCOUNT_NUMBER }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
           username: ${{ env.AWS_ACCESS_KEY_ID }}
           password: ${{ env.AWS_SECRET_ACCESS_KEY }}
 
-      - name: Build, tag, and push image to ECR
+      - name: Build, tag, and push image to ECR # build Docker image and push it to ECR repository
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
