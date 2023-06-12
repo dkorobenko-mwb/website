@@ -47,7 +47,7 @@ jobs:
 
       - name: Terraform destroy
         run: |
-          aws ecr delete-repository --repository-name env.ECR_REPOSITORY --force
+          aws ecr delete-repository --repository-name ${{ env.ECR_REPOSITORY }} --force
           terraform destroy --auto-approve
         if: "${{ github.event.inputs.terraform_operation == 'destroy' }}"
         
