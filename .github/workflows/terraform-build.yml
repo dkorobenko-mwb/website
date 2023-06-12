@@ -39,8 +39,11 @@ jobs:
       - name: Terraform apply
         run: |
           terraform apply --auto-approve
-          output_value=$(terraform output -raw app_url)
-          echo "APP_URL=$output_value" >> $GITHUB_ENV
+          echo APP_URL=$(terraform output app_url)
+        if: inputs.trigger == 'apply'
+      
+      - name: Application URL
+        run: echo APP_URL=$(terraform output app_url) >> $GITHUB_ENV
         if: inputs.trigger == 'apply'
 
       - name: Terraform destroy
