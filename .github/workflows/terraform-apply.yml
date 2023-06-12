@@ -72,4 +72,4 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Application URL
-        run: echo APP_URL=$(terraform output app_url)
+        run: echo $(terraform output app_url)
