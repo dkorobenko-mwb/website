@@ -1,4 +1,4 @@
-name: 'Terraform Apply'
+name: 'Terraform Build'
 
 on:
   workflow_dispatch:
@@ -22,8 +22,7 @@ env:
   TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
 
 jobs:
-  terraform:
-    name: "terraform"
+  deploy-app:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -72,4 +71,4 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Application URL
-        run: echo $(terraform output app_url)
+        run: echo "APP_URL=$(terraform output app_url)" >> $GITHUB_OUTPUT
