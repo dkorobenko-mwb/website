@@ -453,7 +453,7 @@ The output should end with an application's URL:
 
 ## Automate with GitHub Actions
 
-Now it is time to automate the workflow with GitHub Actions.
+Now it is time to automate the workflow with GitHub Actions (with the help of [Terraform tutorial](https://earthly.dev/blog/deploy-dockcontainers-to-awsecs-using-terraform/) and [this blog](https://octopus.com/blog/githubactions-docker-ecr)).
 
 ### Initial Setup
 
