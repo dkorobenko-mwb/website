@@ -453,7 +453,23 @@ The output should end with an application's URL:
 
 ## Automate with GitHub Actions
 
+Now it is time to automate the workflow with GitHub Actions.
 
+### Initial Setup
+
+In earlier section, I already created a Terraform workspace with CLI-driven workflow and added AWS configuration credentials as environmental variables. After that a few more steps are required to complete the setup for GitHub Actions.
+
+1. Generated a new API token in Terraform Cloud User Settings:
+
+![Terraform token](/images/gha_token.png)
+
+2. Opened GitHub repository settings, *Secrets and variables* menu. Selected *Actions* and created a new secret named TF_API_TOKEN, setting the Terraform Cloud API token created in the previous step as the value. This will allow GitHub Actions workflow to authenticate to Terraform Cloud. Also, added AWS configuration credentials to repository secrets.
+
+![GitHub Actions secrets](/images/gha_secrets.png)
+
+3. Created *.github/workflow/terraform-build.yml* file inside the repository which should contain the set of instructions that the workflow will execute.
+
+The first line defines the name of the Actions workflow. Next, the configuration states that this workflow should use workflow_dispatch event to manually trigger from GitHub repository interface. It also defines environment variables used by the workflow.
 
 ```yaml
 name: 'Terraform Build'
@@ -469,11 +485,7 @@ on:
         options:
           - apply
           - destroy
-```
 
-
-
-```yaml
 env: # define environmental variables
   AWS_ACCOUNT_NUMBER: ${{ secrets.AWS_ACCOUNT_NUMBER }}
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -483,7 +495,15 @@ env: # define environmental variables
   TF_API_TOKEN: "${{ secrets.TF_API_TOKEN }}"
 ```
 
+### Build AWS Infrastructure
 
+Defined *build-aws-infra* job which setups Terraform, initializes Terraform working directory and applies the changes defined in Terraform configuratiom. To be able to use the remote backend in Terraform Cloud I configured the credentials for Terraform Cloud in *Setup Terraform*.
+
+A separate *Application URL* step was defined by using the Terraform output to be able to get the application URL from GitHub Actions. This also required the Terraform wrapper to be set as false in *Setup Terraform*.
+
+*Terraform destroy* step was also added to the configuration. Due to ECR repository containing the Docker image and inability to destroy non-empty ECR, a few commands had to be defined before running terraform destroy to forcefully  delete the ECR repository if it exists.
+
+The different steps will be processed depending on the input received from GitHub Actions interface (either apply or destroy).
 
 ```yaml
 jobs:
@@ -510,7 +530,7 @@ jobs:
         run: echo APP_URL=$(terraform output app_url)
         if: inputs.trigger == 'apply'
 
-      - name: Terraform destroy # destroy AWS ECR repository forcefully, then destroy all other Terraform resources
+      - name: Terraform destroy # destroy AWS ECR repository forcefully if it exists, then destroy all other Terraform resources
         run: |
           aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} >/dev/null 2>&1 &&
           aws ecr delete-repository --repository-name ${{ env.ECR_REPOSITORY }} --force || true
@@ -518,7 +538,13 @@ jobs:
         if: inputs.trigger == 'destroy'
 ```
 
+### Build and Push Docker Image to ECR
 
+As the AWS infrastructure was already built in the earlier job, the last step is to build and push the Docker image to AWS ECR.
+
+Defined *build-and-push-image* job that will first authenticate with AWS and retrieve temporary ECR registry credentials, then use temporary ECR credentials to authenticate Docker CLI with ECR registry. Finally, it will build Docker image and push it to ECR repository.
+
+The job should run only if "apply" option was chosen by the user in GitHub Actions interface.
 
 ```yaml
 jobs:
@@ -551,29 +577,54 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 ```
 
+### Deploy Infrastructure
 
+Now it is time to deploy our infrastructure with Github Actions.
+
+1. Opened the GitHub repository, clicked on Actions tab and triggered the workflow by choosing "apply" option:
+
+![GitHub Actions Trigger](/images/gha_trigger.png)
+
+2. The configuration should be applied without any manual intervention. The graphical representation of successful workflow application is presented below.
+
+![GitHub Actions Apply Graph](/images/gha_apply_graph.png)
+
+3. In each job it is visible which steps were executed and which were skipped. In case of any errors, this interface would reflect them as well which is convenient for debugging.
+
+To access web application, the URL can be copied from the relevant step in *build-aws-infra* job.
+
+![GitHub Actions Apply Graph](/images/gha_apply.png)
+
+4. After verifying that the application is working as expected, I chose the Terraform destroy workflow to avoid any additional AWS costs.
+
+![GitHub Actions Destroy Graph](/images/gha_destroy_graph.png)
+
+And checked that all the steps were successfully completed:
+
+![GitHub Actions Destroy](/images/gha_destroy.png)
+
+That is it, the application was successfully deployed using Docker + AWS + Terraform + GitHub Actions, and all the resources were destroyed afterwards!
 
 ## Useful Links
 
 All learning materials recommended here are free, except for books (more in-depth knowledge).
 
 - GitHub
-  + [Documentation]()
-  + [Documentation]()
-  + [Documentation]()
-  + [Documentation]()
+  + [Documentation](https://docs.github.com/en)
+  + [Interactive Application](https://learngitbranching.js.org/)
+  + [Cheat Sheet](https://education.github.com/git-cheat-sheet-education.pdf)
+  + [Youtube Course](https://youtu.be/RGOj5yH7evk)
 
 - AWS
   + [Documentation](https://docs.aws.amazon.com/)
   + [Skill Builder](https://skillbuilder.aws/)
-  + [Documentation]()
-  + [Documentation]()
+  + [Cheat Sheets](https://digitalcloud.training/aws-cheat-sheets/)
+  + [Youtube Course](https://youtu.be/SOTamWNgDKc)
 
 - Docker
   + [Documentation](https://docs.docker.com)
   + [Cheat Sheet](https://docs.docker.com/get-started/docker_cheatsheet.pdf)
   + [Course](https://learn.cantrill.io/p/docker-fundamentals)
-  + [Other]()
 
 - Terraform
   + [Documentation](https://developer.hashicorp.com/terraform/docs)
@@ -583,9 +634,8 @@ All learning materials recommended here are free, except for books (more in-dept
   + [Hands-on Book](https://www.amazon.co.uk/Terraform-Running-Writing-Infrastructure-Code-dp-1098116747/dp/1098116747/ref=dp_ob_title_bk)
 
 - GitHub Actions
-  + [Documentation]()
-  + [Documentation]()
-  + [Documentation]()
-  + [Documentation]()
+  + [Documentation](https://docs.github.com/en/actions)
+  + [Cheat Sheet](https://github.github.io/actions-cheat-sheet/actions-cheat-sheet.pdf)
+  + [Youtube Course](https://youtu.be/R8_veQiYBjI)
 <br> </br> 
   >**Note**: I've built this project from many resources which were mentioned throughout the file. *Useful Links* section is purely a source of information for you about where to get the basic knowledge required to complete this project.
