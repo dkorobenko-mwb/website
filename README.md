@@ -10,6 +10,10 @@
     + [Launch the Container](#launch-the-container)
     + [Test the Infrastructure](#test-the-infrastructure)
   - [Automate with GitHub Actions](#automate-with-github-actions)
+    + [Initial Setup](#initial-setup-1)
+    + [Build AWS Infrastructure](#build-aws-infrastructure)
+    + [Build and Push Docker Image to ECR](#build-and-push-docker-image-to-ecr)
+    + [Deploy Infrastructure](#deploy-infrastructure)
   - [Useful Links](#useful-links)
 
 ## Prerequisites
